@@ -6,6 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import Icon from "@/components/ui/icon";
+import { useAudioPlayer } from "@/hooks/useAudioPlayer";
+import { useToast } from "@/hooks/use-toast";
 
 interface Track {
   id: string;
@@ -13,6 +15,7 @@ interface Track {
   artist: string;
   duration: string;
   album?: string;
+  audioUrl?: string;
 }
 
 interface RadioStation {
@@ -23,21 +26,34 @@ interface RadioStation {
 }
 
 const Index = () => {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrack, setCurrentTrack] = useState<Track | null>(null);
-  const [volume, setVolume] = useState([75]);
+  const { toast } = useToast();
+  const {
+    isPlaying,
+    currentTrack,
+    currentTime,
+    duration,
+    volume,
+    playTrack,
+    togglePlay,
+    seek,
+    skipForward,
+    skipBackward,
+    setVolume,
+    formatTime,
+  } = useAudioPlayer();
+  
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("search");
 
   const mockTracks: Track[] = [
-    { id: "1", title: "Funeral Fog", artist: "Mayhem", duration: "5:47", album: "De Mysteriis Dom Sathanas" },
-    { id: "2", title: "Freezing Moon", artist: "Mayhem", duration: "6:23", album: "De Mysteriis Dom Sathanas" },
-    { id: "3", title: "Transilvanian Hunger", artist: "Darkthrone", duration: "6:09", album: "Transilvanian Hunger" },
-    { id: "4", title: "Under a Funeral Moon", artist: "Darkthrone", duration: "5:07", album: "Under a Funeral Moon" },
-    { id: "5", title: "In the Shadow of the Horns", artist: "Darkthrone", duration: "7:07", album: "A Blaze in the Northern Sky" },
-    { id: "6", title: "Dunkelheit", artist: "Burzum", duration: "7:05", album: "Filosofem" },
-    { id: "7", title: "Det Som Engang Var", artist: "Burzum", duration: "14:21", album: "Det Som Engang Var" },
-    { id: "8", title: "Pure Fucking Armageddon", artist: "Mayhem", duration: "3:30", album: "Pure Fucking Armageddon" },
+    { id: "1", title: "Funeral Fog", artist: "Mayhem", duration: "5:47", album: "De Mysteriis Dom Sathanas", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+    { id: "2", title: "Freezing Moon", artist: "Mayhem", duration: "6:23", album: "De Mysteriis Dom Sathanas", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+    { id: "3", title: "Transilvanian Hunger", artist: "Darkthrone", duration: "6:09", album: "Transilvanian Hunger", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+    { id: "4", title: "Under a Funeral Moon", artist: "Darkthrone", duration: "5:07", album: "Under a Funeral Moon", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3" },
+    { id: "5", title: "In the Shadow of the Horns", artist: "Darkthrone", duration: "7:07", album: "A Blaze in the Northern Sky", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3" },
+    { id: "6", title: "Dunkelheit", artist: "Burzum", duration: "7:05", album: "Filosofem", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3" },
+    { id: "7", title: "Det Som Engang Var", artist: "Burzum", duration: "14:21", album: "Det Som Engang Var", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-7.mp3" },
+    { id: "8", title: "Pure Fucking Armageddon", artist: "Mayhem", duration: "3:30", album: "Pure Fucking Armageddon", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
   ];
 
   const mockRadioStations: RadioStation[] = [
@@ -50,12 +66,18 @@ const Index = () => {
   const myLibrary: Track[] = mockTracks.slice(0, 4);
 
   const handlePlayTrack = (track: Track) => {
-    setCurrentTrack(track);
-    setIsPlaying(true);
+    playTrack(track);
+    toast({
+      title: "Сейчас играет",
+      description: `${track.title} - ${track.artist}`,
+    });
   };
 
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
+  const handleDownload = (track: Track) => {
+    toast({
+      title: "Загрузка",
+      description: `${track.title} добавлен в библиотеку`,
+    });
   };
 
   const filteredTracks = mockTracks.filter(
@@ -131,7 +153,7 @@ const Index = () => {
                           <p className="text-sm text-muted-foreground">{track.artist}</p>
                         </div>
                         <span className="text-sm text-muted-foreground">{track.duration}</span>
-                        <Button size="icon" variant="ghost" className="hover:bg-primary/20">
+                        <Button size="icon" variant="ghost" className="hover:bg-primary/20" onClick={() => handleDownload(track)}>
                           <Icon name="Download" size={18} className="text-primary" />
                         </Button>
                       </div>
@@ -170,7 +192,7 @@ const Index = () => {
                           <p className="text-sm text-muted-foreground">{track.artist} • {track.album}</p>
                         </div>
                         <span className="text-sm text-muted-foreground">{track.duration}</span>
-                        <Button size="icon" variant="ghost" className="hover:bg-primary/20">
+                        <Button size="icon" variant="ghost" className="hover:bg-primary/20" onClick={() => toast({ title: "Удалено", description: `${track.title} удален из библиотеки` })}>
                           <Icon name="Trash2" size={18} className="text-destructive" />
                         </Button>
                       </div>
@@ -205,8 +227,8 @@ const Index = () => {
                       <Button
                         className="w-full bg-primary hover:bg-primary/80 text-primary-foreground"
                         onClick={() => {
-                          setIsPlaying(true);
-                          setCurrentTrack({ id: station.id, title: station.name, artist: station.genre, duration: "∞" });
+                          playTrack({ id: station.id, title: station.name, artist: station.genre, duration: "∞" });
+                          toast({ title: "Радио", description: `Слушаем ${station.name}` });
                         }}
                       >
                         <Icon name="Play" size={18} className="mr-2" />
@@ -279,7 +301,7 @@ const Index = () => {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <Button size="icon" variant="ghost" className="hover:bg-primary/20">
+                  <Button size="icon" variant="ghost" className="hover:bg-primary/20" onClick={skipBackward}>
                     <Icon name="SkipBack" size={20} className="text-foreground" />
                   </Button>
                   <Button
@@ -289,7 +311,7 @@ const Index = () => {
                   >
                     <Icon name={isPlaying ? "Pause" : "Play"} size={24} />
                   </Button>
-                  <Button size="icon" variant="ghost" className="hover:bg-primary/20">
+                  <Button size="icon" variant="ghost" className="hover:bg-primary/20" onClick={skipForward}>
                     <Icon name="SkipForward" size={20} className="text-foreground" />
                   </Button>
                   <Button size="icon" variant="ghost" className="hover:bg-primary/20">
@@ -303,8 +325,8 @@ const Index = () => {
                 <div className="flex items-center gap-3 w-32">
                   <Icon name="Volume2" size={20} className="text-muted-foreground" />
                   <Slider
-                    value={volume}
-                    onValueChange={setVolume}
+                    value={[volume]}
+                    onValueChange={(val) => setVolume(val[0])}
                     max={100}
                     step={1}
                     className="flex-1"
@@ -313,9 +335,14 @@ const Index = () => {
               </div>
 
               <div className="flex items-center gap-2">
-                <span className="text-xs text-muted-foreground">0:00</span>
-                <Slider value={[33]} max={100} className="flex-1" />
-                <span className="text-xs text-muted-foreground">{currentTrack.duration}</span>
+                <span className="text-xs text-muted-foreground">{formatTime(currentTime)}</span>
+                <Slider 
+                  value={[duration > 0 ? (currentTime / duration) * 100 : 0]} 
+                  max={100} 
+                  className="flex-1"
+                  onValueChange={(val) => seek((val[0] / 100) * duration)}
+                />
+                <span className="text-xs text-muted-foreground">{duration > 0 ? formatTime(duration) : currentTrack.duration}</span>
               </div>
             </div>
           ) : (
