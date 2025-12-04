@@ -144,5 +144,6 @@ export const useAudioPlayer = () => {
     skipBackward,
     setVolume,
     formatTime,
+    audioElement: audioRef.current,
   };
 };

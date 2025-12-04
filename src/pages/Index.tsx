@@ -8,6 +8,8 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import Icon from "@/components/ui/icon";
 import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useToast } from "@/hooks/use-toast";
+import AudioVisualizer from "@/components/AudioVisualizer";
+import MiniVisualizer from "@/components/MiniVisualizer";
 
 interface Track {
   id: string;
@@ -40,6 +42,7 @@ const Index = () => {
     skipBackward,
     setVolume,
     formatTime,
+    audioElement,
   } = useAudioPlayer();
   
   const [searchQuery, setSearchQuery] = useState("");
@@ -102,6 +105,16 @@ const Index = () => {
       </header>
 
       <main className="flex-1 container mx-auto px-4 py-6 pb-32">
+        {currentTrack && (
+          <Card className="mb-6 bg-card/80 border-primary/30 overflow-hidden">
+            <CardContent className="p-0">
+              <div className="h-[150px] bg-gradient-to-b from-secondary/50 to-background">
+                <AudioVisualizer isPlaying={isPlaying} audioElement={audioElement} />
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-4 bg-secondary/80 mb-6">
             <TabsTrigger value="search" className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
@@ -291,9 +304,7 @@ const Index = () => {
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4 flex-1">
-                  <div className="w-12 h-12 bg-secondary rounded flex items-center justify-center">
-                    <Icon name="Music" size={24} className="text-primary" />
-                  </div>
+                  <MiniVisualizer isPlaying={isPlaying} />
                   <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-foreground truncate">{currentTrack.title}</h4>
                     <p className="text-sm text-muted-foreground truncate">{currentTrack.artist}</p>
