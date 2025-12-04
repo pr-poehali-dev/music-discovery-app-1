@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { useAudioPlayer } from "@/hooks/useAudioPlayer";
 import { useToast } from "@/hooks/use-toast";
 import AudioVisualizer from "@/components/AudioVisualizer";
 import MiniVisualizer from "@/components/MiniVisualizer";
+import { api } from "@/lib/api";
 
 interface Track {
   id: string;
@@ -47,6 +49,29 @@ const Index = () => {
   
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("search");
+  const queryClient = useQueryClient();
+
+  const { data: libraryTracks = [], refetch: refetchLibrary } = useQuery({
+    queryKey: ['library'],
+    queryFn: api.getLibrary,
+  });
+
+  const { data: playlists = [], refetch: refetchPlaylists } = useQuery({
+    queryKey: ['playlists'],
+    queryFn: api.getPlaylists,
+  });
+
+  const { data: radioStations = [], refetch: refetchRadio } = useQuery({
+    queryKey: ['radio'],
+    queryFn: api.getRadioStations,
+  });
+
+  const addToLibraryMutation = useMutation({
+    mutationFn: api.addToLibrary,
+    onSuccess: () => {
+      refetchLibrary();
+    },
+  });
 
   const mockTracks: Track[] = [
     { id: "1", title: "Funeral Fog", artist: "Mayhem", duration: "5:47", album: "De Mysteriis Dom Sathanas", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
@@ -59,14 +84,21 @@ const Index = () => {
     { id: "8", title: "Pure Fucking Armageddon", artist: "Mayhem", duration: "3:30", album: "Pure Fucking Armageddon", audioUrl: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3" },
   ];
 
-  const mockRadioStations: RadioStation[] = [
-    { id: "r1", name: "Black Metal Radio", genre: "Black Metal", url: "https://stream.radio.co/black-metal" },
-    { id: "r2", name: "Death Metal Station", genre: "Death Metal", url: "https://stream.radio.co/death-metal" },
-    { id: "r3", name: "Doom Channel", genre: "Doom Metal", url: "https://stream.radio.co/doom" },
-    { id: "r4", name: "Atmospheric Black", genre: "Atmospheric", url: "https://stream.radio.co/atmospheric" },
-  ];
+  const myLibrary = libraryTracks.map(t => ({
+    id: t.track_id,
+    title: t.title,
+    artist: t.artist,
+    album: t.album,
+    duration: t.duration,
+    audioUrl: t.audio_url,
+  }));
 
-  const myLibrary: Track[] = mockTracks.slice(0, 4);
+  const dbRadioStations = radioStations.map(s => ({
+    id: s.station_id,
+    name: s.name,
+    genre: s.genre,
+    url: s.url,
+  }));
 
   const handlePlayTrack = (track: Track) => {
     playTrack(track);
@@ -76,11 +108,27 @@ const Index = () => {
     });
   };
 
-  const handleDownload = (track: Track) => {
-    toast({
-      title: "Загрузка",
-      description: `${track.title} добавлен в библиотеку`,
-    });
+  const handleDownload = async (track: Track) => {
+    try {
+      await addToLibraryMutation.mutateAsync({
+        track_id: track.id,
+        title: track.title,
+        artist: track.artist,
+        album: track.album,
+        duration: track.duration,
+        audio_url: track.audioUrl,
+      });
+      toast({
+        title: "Загрузка",
+        description: `${track.title} добавлен в библиотеку`,
+      });
+    } catch (error) {
+      toast({
+        title: "Ошибка",
+        description: "Не удалось добавить трек",
+        variant: "destructive",
+      });
+    }
   };
 
   const filteredTracks = mockTracks.filter(
@@ -227,7 +275,7 @@ const Index = () => {
 
             <ScrollArea className="h-[calc(100vh-320px)]">
               <div className="grid gap-4 md:grid-cols-2">
-                {mockRadioStations.map((station) => (
+                {dbRadioStations.map((station) => (
                   <Card key={station.id} className="bg-card/80 border-border hover:bg-card transition-colors">
                     <CardContent className="p-6">
                       <div className="flex items-start justify-between mb-3">
@@ -264,35 +312,17 @@ const Index = () => {
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
-              <Card className="bg-card/80 border-border hover:bg-card transition-colors cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="w-full aspect-square bg-secondary rounded-lg mb-4 flex items-center justify-center">
-                    <Icon name="Music" size={48} className="text-primary" />
-                  </div>
-                  <h3 className="font-bold text-foreground mb-1">Favorites</h3>
-                  <p className="text-sm text-muted-foreground">8 треков</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/80 border-border hover:bg-card transition-colors cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="w-full aspect-square bg-secondary rounded-lg mb-4 flex items-center justify-center">
-                    <Icon name="Flame" size={48} className="text-primary" />
-                  </div>
-                  <h3 className="font-bold text-foreground mb-1">Norwegian Black</h3>
-                  <p className="text-sm text-muted-foreground">12 треков</p>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-card/80 border-border hover:bg-card transition-colors cursor-pointer">
-                <CardContent className="p-6 text-center">
-                  <div className="w-full aspect-square bg-secondary rounded-lg mb-4 flex items-center justify-center">
-                    <Icon name="Moon" size={48} className="text-primary" />
-                  </div>
-                  <h3 className="font-bold text-foreground mb-1">Dark Ambient</h3>
-                  <p className="text-sm text-muted-foreground">6 треков</p>
-                </CardContent>
-              </Card>
+              {playlists.map((playlist) => (
+                <Card key={playlist.id} className="bg-card/80 border-border hover:bg-card transition-colors cursor-pointer">
+                  <CardContent className="p-6 text-center">
+                    <div className="w-full aspect-square bg-secondary rounded-lg mb-4 flex items-center justify-center">
+                      <Icon name={playlist.icon as any} size={48} className="text-primary" />
+                    </div>
+                    <h3 className="font-bold text-foreground mb-1">{playlist.name}</h3>
+                    <p className="text-sm text-muted-foreground">{playlist.track_count || 0} треков</p>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           </TabsContent>
         </Tabs>

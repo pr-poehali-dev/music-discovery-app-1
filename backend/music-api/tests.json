@@ -1,0 +1,42 @@
+{
+  "tests": [
+    {
+      "name": "Get library tracks",
+      "method": "GET",
+      "path": "/?action=library",
+      "expectedStatus": 200,
+      "expectedBody": [],
+      "bodyMatcher": "type"
+    },
+    {
+      "name": "Get playlists",
+      "method": "GET",
+      "path": "/?action=playlists",
+      "expectedStatus": 200,
+      "expectedBody": [
+        {
+          "id": "number",
+          "name": "string",
+          "icon": "string",
+          "track_count": "number"
+        }
+      ],
+      "bodyMatcher": "partial"
+    },
+    {
+      "name": "Get radio stations",
+      "method": "GET",
+      "path": "/?action=radio",
+      "expectedStatus": 200,
+      "expectedBody": [
+        {
+          "station_id": "string",
+          "name": "string",
+          "genre": "string",
+          "url": "string"
+        }
+      ],
+      "bodyMatcher": "partial"
+    }
+  ]
+}
